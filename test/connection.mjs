@@ -86,6 +86,27 @@ test('server mode', (t) =>
   }))))
 )
 
+test('client mode, keep-alive of the server', (t) =>
+  withDHT((a) => withRelay(a, (withDHT) => withMatrix({ custodial: [true, false] }, (options) => withDHT(options, async (b) => {
+    t.comment(`custodial = ${options.custodial}`)
+
+    const io = t.test('read')
+    io.plan(1)
+
+    const server = a.createServer((socket) => {
+      socket.setKeepAlive(50)
+      setTimeout(() => socket.end('pong'), 500)
+    })
+    await server.listen()
+
+    b.connect(server.publicKey)
+      .once('data', (data) => io.alike(data.toString(), 'pong'))
+      .on('end', function () { this.end() })
+
+    await io.then(() => server.close())
+  }))))
+)
+
 test('connect to nonexisting key', (t) =>
   withDHT((a) => withRelay(a, (withDHT) => withDHT(async (b) => {
     const e = t.test('error')
