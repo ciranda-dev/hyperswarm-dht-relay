@@ -142,3 +142,16 @@ test('connect to nonexisting key', (t) =>
     await e
   })))
 )
+
+test('destroyed only once destroyed', (t) =>
+  withDHT((a) => withRelay(a, async (withDHT) => {
+    let relayed = null
+
+    await withDHT({ custodial: false }, async (b) => {
+      relayed = b
+      t.absent(b.destroyed, 'not before')
+    })
+
+    t.ok(relayed.destroyed, 'after')
+  }))
+)
