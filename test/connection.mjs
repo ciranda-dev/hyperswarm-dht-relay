@@ -107,6 +107,29 @@ test('client mode, keep-alive of the server', (t) =>
   }))))
 )
 
+test('client mode, round trip time of the raw stream', (t) =>
+  withDHT((a) => withRelay(a, (withDHT) => withMatrix({ custodial: [true, false] }, (options) => withDHT(options, async (b) => {
+    t.comment(`custodial = ${options.custodial}`)
+
+    const rtt = t.test('rtt')
+    rtt.plan(1)
+
+    const server = a.createServer((socket) => {
+      socket.resume().on('end', () => socket.end())
+    })
+    await server.listen()
+
+    const socket = b.connect(server.publicKey)
+
+    socket.once('open', () => {
+      rtt.ok(socket.rawStream.rtt < Infinity, 'a number below Infinity')
+      socket.resume().end()
+    })
+
+    await rtt.then(() => server.close())
+  }))))
+)
+
 test('connect to nonexisting key', (t) =>
   withDHT((a) => withRelay(a, (withDHT) => withDHT(async (b) => {
     const e = t.test('error')
